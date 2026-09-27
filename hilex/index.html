@@ -67,8 +67,27 @@ function recommendation(){collect();let missing=0;if(data.domain!=='yes')missing
  $('#recommendation').innerHTML=`<h3>${tier}</h3><p>${items.length?'Your assessment suggests prioritising: '+items.join(', ')+'.':'Your foundations are already strong. The next conversation should focus on growth, automation and wider-market needs.'}</p><p class="mini">This is a starting recommendation. Final scope and pricing remain under BizApp ZW admin review.</p>`;
 }
 function show(){steps.forEach((s,i)=>s.classList.toggle('active',i===at));$('#bar').style.width=((at+1)/steps.length*100)+'%';$('#back').classList.toggle('hidden',at===0);$('#next').classList.toggle('hidden',at===steps.length-1);$('#submit').classList.toggle('hidden',at!==steps.length-1);if(at===steps.length-1)recommendation();scrollTo({top:0,behavior:'smooth'})}
-$('#next').onclick=()=>{collect();if(at===0&&!$('#f').reportValidity())return;const g=steps[at].querySelector('.choices');if(g&&!g.querySelector('.on')){alert('Please choose an option before continuing.');return}at++;show()};
-$('#back').onclick=()=>{at--;show()};
+$('#next').onclick=()=>{
+  collect();
+
+  // Validate only fields visible on the current step
+  const invalid = steps[at].querySelector(':invalid');
+  if(invalid){
+    invalid.reportValidity();
+    return;
+  }
+
+  const g = steps[at].querySelector('.choices');
+  if(g && !g.querySelector('.on')){
+    alert('Please choose an option before continuing.');
+    return;
+  }
+
+  at++;
+  show();
+};
+ 
+ $('#back').onclick=()=>{at--;show()};
 $('#f').onsubmit=async e=>{e.preventDefault();collect();recommendation();if(!$('#f').reportValidity())return;$('#submit').disabled=true;$('#status').textContent='Sending securely…';
  try{let r=await fetch(API+'/bizapp/hilex-leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});let j=await r.json();if(!r.ok)throw Error(j.error||'Could not submit');$('#status').innerHTML='✅ Assessment received. Reference: <b>'+j.reference+'</b>. BizApp ZW can now review it from the admin lead queue.';$('#submit').classList.add('hidden')}
  catch(err){$('#status').textContent='⚠️ '+err.message+'. Please try again.';$('#submit').disabled=false}
