@@ -95,18 +95,37 @@ function trackFunnel(event){
     }).catch(()=>{});
   } catch (_) {}
 }
-// Count a HILEX-sourced arrival, including links carrying source=hilex.
+// Phase 2C: preserve verified campaign attribution through the assessment.
+// Only an explicit, recognised referral parameter can identify a campaign.
 const referralParams = new URLSearchParams(location.search);
-const rawSource = (referralParams.get('utm_source') || referralParams.get('source') || '').toLowerCase();
 const allowedCampaigns = new Set(['business_education','regulation_education','pi_economics','general']);
-const campaign = (referralParams.get('utm_campaign') || 'general').toLowerCase();
-const attributedCampaign = allowedCampaigns.has(campaign) ? campaign : 'general';
-const isHilexReferral = ['hilexdigital','hilex'].includes(rawSource);
-if(isHilexReferral) {
-  data.utm_source = 'hilexdigital';
-  data.utm_campaign = attributedCampaign;
-  data.utm_medium = (referralParams.get('utm_medium') || 'education').trim().toLowerCase().slice(0,64);
+const allowedSources = new Set(['hilexdigital','hilex']);
+const rawSource = (referralParams.get('utm_source') || referralParams.get('source') || '').trim().toLowerCase();
+const rawCampaign = (referralParams.get('utm_campaign') || '').trim().toLowerCase();
+const rawMedium = (referralParams.get('utm_medium') || '').trim().toLowerCase().slice(0,64);
+const attributionKey = 'bizapp_hilex_attribution_v2';
+let savedAttribution = null;
+try { savedAttribution = JSON.parse(sessionStorage.getItem(attributionKey) || 'null'); } catch (_) {}
+// A new explicitly tagged arrival overrides prior attribution. Untagged visits
+// can resume a previously tagged assessment in the same browser tab only.
+if (allowedSources.has(rawSource)) {
+  savedAttribution = {
+    utm_source: 'hilexdigital',
+    utm_campaign: allowedCampaigns.has(rawCampaign) ? rawCampaign : 'general',
+    utm_medium: rawMedium || 'education'
+  };
+  try { sessionStorage.setItem(attributionKey, JSON.stringify(savedAttribution)); } catch (_) {}
   trackFunnel('hilex_referral');
+} else if (rawSource || rawCampaign) {
+  // Do not inherit an older HILEX campaign across a newly tagged non-HILEX visit.
+  savedAttribution = null;
+  try { sessionStorage.removeItem(attributionKey); } catch (_) {}
+}
+if (savedAttribution && savedAttribution.utm_source === 'hilexdigital') {
+  data.utm_source = 'hilexdigital';
+  data.utm_campaign = allowedCampaigns.has(savedAttribution.utm_campaign)
+    ? savedAttribution.utm_campaign : 'general';
+  data.utm_medium = String(savedAttribution.utm_medium || 'education').slice(0,64);
 }
 // Count a genuine form start only when a visitor first interacts with the form.
 const form = document.getElementById('f');
