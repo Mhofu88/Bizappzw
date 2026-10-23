@@ -105,6 +105,7 @@ const isHilexReferral = ['hilexdigital','hilex'].includes(rawSource);
 if(isHilexReferral) {
   data.utm_source = 'hilexdigital';
   data.utm_campaign = attributedCampaign;
+  data.utm_medium = (referralParams.get('utm_medium') || 'education').trim().toLowerCase().slice(0,64);
   trackFunnel('hilex_referral');
 }
 // Count a genuine form start only when a visitor first interacts with the form.
