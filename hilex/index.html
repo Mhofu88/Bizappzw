@@ -51,6 +51,7 @@ footer{text-align:center;color:var(--muted);padding:28px 20px 50px;font-size:.85
 <header><div class="wrap brand"><b>HILEX → BizApp ZW</b><span class="badge">Business Implementation Pathway</span></div></header>
 <section class="hero wrap"><div class="eyebrow">YOU'VE LEARNED. NOW LET'S BUILD.</div><h1>Turn your HILEX learning into a <span>practical business plan.</span></h1>
 <p class="lead">Tell us where your business is today. In a few minutes, BizApp ZW will identify your strongest implementation pathway — without forcing you into a package before your needs are clear.</p>
+<p id="referralDiagnostic" class="mini" style="background:#eaf4ef;padding:10px 14px;border-radius:10px" aria-live="polite">Referral: checking…</p>
 <div class="trust"><span>✓ Business keeps domain ownership</span><span>✓ Mobile-first</span><span>✓ Africa-focused</span><span>✓ No payment required for assessment</span></div></section>
 <main class="wrap card">
 <div class="progress"><i id="bar"></i></div>
@@ -127,6 +128,14 @@ if (savedAttribution && ['hilexdigital','bizappzw'].includes(savedAttribution.ut
     ? savedAttribution.utm_campaign : 'general';
   data.utm_medium = String(savedAttribution.utm_medium || (savedAttribution.utm_source === 'bizappzw' ? 'service_page' : 'education')).slice(0,64);
 }
+// Display attribution before submission so a referral problem is visible immediately.
+const referralDiagnostic = document.getElementById('referralDiagnostic');
+function showReferralDiagnostic(){
+  const campaign = data.utm_campaign || 'general';
+  const source = data.utm_source || 'direct_or_unknown';
+  referralDiagnostic.textContent = 'Referral campaign: ' + campaign + ' | Source: ' + source;
+}
+showReferralDiagnostic();
 // Count a genuine form start only when a visitor first interacts with the form.
 const form = document.getElementById('f');
 function onFormInteraction(event){
@@ -177,7 +186,7 @@ $('#next').onclick=()=>{
  
  $('#back').onclick=()=>{at--;show()};
 $('#f').onsubmit=async e=>{e.preventDefault();collect();recommendation();if(!$('#f').reportValidity())return;if(!$('#f').elements.consent.checked){$('#status').textContent='Please agree to be contacted before submitting.';return;}$('#submit').disabled=true;$('#status').textContent='Sending securely…';
- try{let r=await fetch(API+'/bizapp/hilex-leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});let j=await r.json();if(!r.ok)throw Error(j.error||'Could not submit');trackFunnel('assessment_complete');$('#status').innerHTML='✅ Assessment received. Reference: <b>'+j.reference+'</b>. BizApp ZW can now review it from the admin lead queue.';$('#submit').classList.add('hidden')}
+ try{let r=await fetch(API+'/bizapp/hilex-leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});let j=await r.json();if(!r.ok)throw Error(j.error||'Could not submit');trackFunnel('assessment_complete');$('#status').textContent='✅ Assessment received. Reference: '+j.reference+'. Stored campaign: '+(j.utm_campaign||'not returned')+'. Stored source: '+(j.utm_source||'not returned')+'. BizApp ZW can now review it from the admin lead queue.';$('#submit').classList.add('hidden')}
  catch(err){$('#status').textContent='⚠️ '+err.message+'. Please try again.';$('#submit').disabled=false}
 };
 show();
